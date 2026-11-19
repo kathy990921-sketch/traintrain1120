@@ -16,8 +16,8 @@ body{display:flex;flex-direction:column;background:var(--sky);color:var(--ink);o
 #video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 #frame{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 #stage{touch-action:none}
-#zoom{position:absolute;left:50%;top:60%;transform:translateX(-50%);display:flex;gap:4px;align-items:center;background:#000a;border-radius:99px;padding:4px 8px;z-index:3}
-#zoom button{min-width:40px;height:34px;border:0;border-radius:99px;background:transparent;color:#fff;font:inherit;font-size:14px;cursor:pointer}
+#zoom{position:absolute;left:50%;top:60%;transform:translateX(-50%);display:flex;gap:4px;align-items:center;background:#000c;border:2px solid #fff8;border-radius:99px;padding:5px 8px;z-index:3}
+#zoom button{min-width:44px;height:38px;border:0;border-radius:99px;background:transparent;color:#fff;font:inherit;font-size:16px;font-weight:800;cursor:pointer}
 #zoom button.on{background:var(--yellow);color:var(--ink)}
 .zl{color:#fff;font-size:12px;min-width:36px;text-align:center}
 #msg{position:absolute;left:18%;right:18%;top:30%;text-align:center;background:var(--cream);border-radius:18px;padding:14px;line-height:1.5}
@@ -97,7 +97,7 @@ async function startCam(){
     stream?.getTracks().forEach(t => t.stop());
     stream = await navigator.mediaDevices.getUserMedia({ audio:false,
       video:{ facingMode:{ ideal:facing }, width:{ ideal:1920 }, height:{ ideal:1080 } } });
-    video.srcObject = stream; await video.play(); msg.hidden = true; setupZoom();
+    video.srcObject = stream; await video.play(); msg.hidden = true; setupZoom().catch(() => { buildZoom(); setZoom(1); });
   }catch(e){
     msg.hidden = false;
     msg.textContent = e.name === 'NotAllowedError' ? '需要允許使用相機，請到瀏覽器設定開啟權限後重新整理。' : '開啟相機失敗：' + e.message;
@@ -184,16 +184,30 @@ $('close').onclick = () => $('book').classList.remove('on');
 
 /* ---------- 變焦：優先用鏡頭硬體變焦，不支援時改用數位變焦；支援雙指縮放 ---------- */
 let zoom = 1, zr = { hw:false, min:1, max:4 };
-function setupZoom(){
+async function setupZoom(){
   const t = stream.getVideoTracks()[0], caps = t.getCapabilities?.() || {};
-  zr = caps.zoom ? { hw:true, min:caps.zoom.min, max:Math.min(caps.zoom.max, 8) } : { hw:false, min:1, max:4 };
+  zr = { hw:false, min:1, max:4 };
   video.style.transform = '';
+  // 有些手機宣告支援硬體變焦，實際卻沒有效果：先試一次，沒有反應就改用數位變焦
+  if(caps.zoom && caps.zoom.max > 1.1){
+    const test = Math.min(2, caps.zoom.max);
+    try{
+      await t.applyConstraints({ advanced:[{ zoom:test }] });
+      await new Promise(r => setTimeout(r, 250));
+      const ok = Math.abs((t.getSettings().zoom || 1) - test) < .2;
+      await t.applyConstraints({ advanced:[{ zoom:caps.zoom.min }] }).catch(() => {});
+      if(ok) zr = { hw:true, min:caps.zoom.min, max:Math.min(caps.zoom.max, 8) };
+    }catch{}
+  }
+  buildZoom(); setZoom(1);
+}
+// 變焦按鈕：開啟網頁就顯示（不用等相機），相機開啟後再依鏡頭能力調整
+function buildZoom(){
   const box = $('zoom'); box.replaceChildren();
   [0.5, 1, 2, 3, 5].filter(z => z >= zr.min - .01 && z <= zr.max + .01).forEach(z => {
     const b = h('button', '', z + '×'); b.dataset.z = z; b.onclick = () => setZoom(z); box.append(b);
   });
   const l = h('span', 'zl'); l.id = 'zlabel'; box.append(l);
-  setZoom(1);
 }
 function setZoom(z){
   zoom = Math.max(zr.min, Math.min(zr.max, z));
@@ -209,6 +223,7 @@ $('stage').addEventListener('touchmove', e => { if(e.touches.length === 2 && pd)
 $('stage').addEventListener('touchend', e => { if(e.touches.length < 2) pd = 0; });
 
 /* ---------- 啟動 ---------- */
+buildZoom(); setZoom(1);
 (async () => { await frameImg.decode(); startCam(); })();
 </script>
 </body>
