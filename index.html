@@ -53,7 +53,7 @@ ul{padding-left:20px;margin:8px 0;font-weight:600;line-height:1.6}
 #book header button{border:0;border-radius:14px;padding:10px 16px;font:inherit;background:var(--yellow);color:var(--ink);cursor:pointer}
 #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
 .card{background:#fff;border:1px solid #d3dce5;border-radius:14px;padding:8px;font-size:14px;box-shadow:0 2px 6px #0002}.card h4{font-size:16px;color:var(--blue);margin:8px 4px 2px}.card ul{font-size:13px;padding-left:20px;margin:2px 4px 6px}.gh{grid-column:1/-1;color:#fff;font-size:18px;margin-top:6px}.cr{display:block;font-size:11px;font-weight:600;color:#556;margin:2px 4px 4px;word-break:break-all}
-.card .ph{aspect-ratio:1058/1487;border-radius:14px;background:#dbe7f1;display:grid;place-items:center;overflow:hidden;padding:4px}.card .ph{font-size:40px;color:#7a8da0}.card small{display:block;font-weight:600;color:#667;margin:0 4px 4px}.card.no{opacity:.8}.pick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.pick button{min-height:46px;border:2px solid var(--blue);background:#fff;color:var(--blue);border-radius:12px;font:inherit;font-size:14px;cursor:pointer;padding:4px}.pick button:active{background:var(--blue);color:#fff}.pg{grid-column:1/-1;font-size:13px;color:#556;margin-top:4px}
+.card .ph{aspect-ratio:1058/1487;border-radius:14px;background:#dbe7f1;display:grid;place-items:center;overflow:hidden;padding:4px}.card .ph{font-size:40px;color:#7a8da0}.card small{display:block;font-weight:600;color:#667;margin:0 4px 4px}.card.no{opacity:.8}.pick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.pick button{min-height:46px;border:2px solid var(--blue);background:#fff;color:var(--blue);border-radius:12px;font:inherit;font-size:14px;cursor:pointer;padding:4px}.pick button:active{background:var(--blue);color:#fff}.card.wide{grid-column:1/-1}.card.wide .ph{aspect-ratio:auto;height:64px}.strip{display:flex;flex-wrap:wrap;gap:6px;margin:6px 4px}.card .strip img{width:84px;height:auto;aspect-ratio:1058/1487;object-fit:cover;border-radius:8px}.pg{grid-column:1/-1;font-size:13px;color:#556;margin-top:4px}
 .card img{width:100%;height:100%;object-fit:cover}
 .card.no{opacity:.75}.card small{display:block;font-weight:600;color:#555}
 @media (prefers-reduced-motion:reduce){.sheet,#shutter i{transition:none}.spin{animation-duration:3s}}
@@ -115,8 +115,9 @@ async function shoot(){
   fx.drawImage(video, (fw-zw)/2, (fh-zh)/2, zw, zh);
   fx.drawImage(frameImg, 0, 0);
   const blob = await new Promise(r => full.toBlob(r, 'image/png'));
+  const ts = canvas(240, 240*fh/fw); ts.getContext('2d').drawImage(full, 0, 0, ts.width, ts.height);
   const th = canvas(480, 480*fh/fw); th.getContext('2d').drawImage(full, 0, 0, th.width, th.height);
-  return { blob, url: URL.createObjectURL(blob), thumb: th.toDataURL('image/jpeg', .75), name: `train_${stamp()}.png` };
+  return { blob, url: URL.createObjectURL(blob), thumb: th.toDataURL('image/jpeg', .75), thumbS: ts.toDataURL('image/jpeg', .7), name: `train_${stamp()}.png` };
 }
 
 function buttons(...list){
@@ -142,7 +143,7 @@ async function share(){
 }
 
 /* ---------- 收集圖鑑：拍照後選火車類型，照片存進圖鑑 ---------- */
-const CLASSES = [{"id": "TAROKO", "name": "太魯閣號", "group": "臺鐵火車"}, {"id": "PUYUMA", "name": "普悠瑪號", "group": "臺鐵火車"}, {"id": "TZECHIANG", "name": "自強號", "group": "臺鐵火車"}, {"id": "CHUKUANG", "name": "莒光號", "group": "臺鐵火車"}, {"id": "DISTRICT", "name": "區間車", "group": "臺鐵火車"}, {"id": "STEAM", "name": "蒸汽火車", "group": "臺鐵火車"}, {"id": "FUHSING", "name": "復興號", "group": "臺鐵火車"}, {"id": "METRO", "name": "捷運", "group": "其他交通"}, {"id": "HSR", "name": "高鐵", "group": "其他交通"}, {"id": "FERRY", "name": "渡輪", "group": "其他交通"}, {"id": "LRT", "name": "輕軌", "group": "其他交通"}, {"id": "PHOTO_DIRECTOR", "name": "與主任的合照", "group": "合照"}, {"id": "PHOTO_PRINCIPAL", "name": "與校長的合照", "group": "合照"}, {"id": "PHOTO_GROUP", "name": "小組自拍合照", "group": "合照"}];
+const CLASSES = [{"id": "TAROKO", "name": "太魯閣號", "group": "臺鐵火車"}, {"id": "PUYUMA", "name": "普悠瑪號", "group": "臺鐵火車"}, {"id": "TZECHIANG", "name": "自強號", "group": "臺鐵火車"}, {"id": "CHUKUANG", "name": "莒光號", "group": "臺鐵火車"}, {"id": "DISTRICT", "name": "區間車", "group": "臺鐵火車"}, {"id": "STEAM", "name": "蒸汽火車", "group": "臺鐵火車"}, {"id": "FUHSING", "name": "復興號", "group": "臺鐵火車"}, {"id": "METRO", "name": "捷運", "group": "其他交通"}, {"id": "HSR", "name": "高鐵", "group": "其他交通"}, {"id": "FERRY", "name": "渡輪", "group": "其他交通"}, {"id": "LRT", "name": "輕軌", "group": "其他交通"}, {"id": "PHOTO_DIRECTOR", "name": "與主任的合照", "group": "合照"}, {"id": "PHOTO_PRINCIPAL", "name": "與校長的合照", "group": "合照"}, {"id": "PHOTO_GROUP", "name": "小組自拍合照", "group": "合照"}, {"id": "CLASSMATES", "name": "我的同學", "group": "合照", "multi": true}, {"id": "QIJIN", "name": "我愛旗津", "group": "高雄行程"}, {"id": "KAOHSIUNG_PORT", "name": "我愛高雄港", "group": "高雄行程"}];
 const loadBook = () => { try { return JSON.parse(localStorage.getItem('tc_book')) || {}; } catch { return {}; } };
 const saveBook = b => { try { localStorage.setItem('tc_book', JSON.stringify(b)); return true; } catch { return false; } };
 const preview = () => { const img = h('img'); img.src = last.url; img.alt = '剛拍的照片'; img.style.cssText = 'display:block;margin:8px auto;max-height:26dvh;max-width:100%;border-radius:12px;border:3px solid #fff'; return img; };
@@ -159,10 +160,18 @@ function showPick(){
 }
 
 function collect(c){
-  const book = loadBook(), again = !!book[c.id];
-  book[c.id] = { date: new Date().toLocaleDateString('zh-TW'), thumb: last.thumb };
+  const book = loadBook(), date = new Date().toLocaleDateString('zh-TW'); let msg;
+  if(c.multi){                                   // 可累積：每拍一張就新增一張，不覆蓋
+    const arr = Array.isArray(book[c.id]) ? book[c.id] : [];
+    arr.push({ date, thumb: last.thumbS }); book[c.id] = arr;
+    msg = `已新增一張：${c.name}（共 ${arr.length} 張）`;
+  }else{
+    const again = !!book[c.id];
+    book[c.id] = { date, thumb: last.thumb };
+    msg = (again ? '已更新照片：' : '收集成功！') + c.name;
+  }
   const ok = saveBook(book);
-  sheet.replaceChildren(h('h2', '', ok ? (again ? '已更新照片：' : '收集成功！') + c.name : '存不進圖鑑（儲存空間不足）'), preview(),
+  sheet.replaceChildren(h('h2', '', ok ? msg : '存不進圖鑑（儲存空間不足）'), preview(),
     buttons(['看圖鑑', openBook], ['儲存照片', saveFile, 'alt'], ['繼續拍', closeSheet, 'alt']));
   sheet.scrollTop = 0;
 }
@@ -172,9 +181,18 @@ function renderBook(){
   let g = '', n = 0;
   CLASSES.forEach(c => {
     if(c.group !== g){ g = c.group; grid.append(h('div', 'gh', g)); }
-    const got = book[c.id], card = h('div', 'card' + (got ? '' : ' no')), ph = h('div', 'ph');
-    if(got){ n++; const im = h('img'); im.src = got.thumb; im.alt = c.name; ph.append(im); } else ph.textContent = '?';
-    card.append(ph, h('h4', '', c.name), h('small', '', got ? got.date : '尚未收集'));
+    const got = book[c.id], list = c.multi ? (Array.isArray(got) ? got : []) : null, has = c.multi ? list.length > 0 : !!got;
+    const card = h('div', 'card' + (c.multi ? ' wide' : '') + (has ? '' : ' no'));
+    if(has) n++;
+    if(c.multi && has){
+      const strip = h('div', 'strip');
+      list.forEach(x => { const im = h('img'); im.src = x.thumb; im.alt = c.name; strip.append(im); });
+      card.append(h('h4', '', `${c.name}（${list.length} 張）`), strip);
+    }else{
+      const ph = h('div', 'ph');
+      if(has){ const im = h('img'); im.src = got.thumb; im.alt = c.name; ph.append(im); } else ph.textContent = '?';
+      card.append(ph, h('h4', '', c.name), h('small', '', has ? got.date : '尚未收集'));
+    }
     grid.append(card);
   });
   $('count').textContent = `我的圖鑑 ${n} / ${CLASSES.length}`;
