@@ -17,6 +17,7 @@ body{display:flex;flex-direction:column;background:var(--sky);color:var(--ink);o
 #frame{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 #stage{touch-action:none}
 #zoom{position:absolute;left:50%;top:60%;transform:translateX(-50%);display:flex;gap:4px;align-items:center;background:#000c;border:2px solid #fff8;border-radius:99px;padding:5px 8px;z-index:3}
+#zoom[hidden]{display:none}
 #zoom button{min-width:44px;height:38px;border:0;border-radius:99px;background:transparent;color:#fff;font:inherit;font-size:16px;font-weight:800;cursor:pointer}
 #zoom button.on{background:var(--yellow);color:var(--ink)}
 .zl{color:#fff;font-size:12px;min-width:36px;text-align:center}
@@ -29,7 +30,7 @@ body{display:flex;flex-direction:column;background:var(--sky);color:var(--ink);o
 #shutter i{display:block;width:100%;height:100%;border-radius:50%;background:var(--red);border:4px solid #fff;transition:transform .1s}
 #shutter:active i{transform:scale(.88)}
 button:focus-visible{outline:3px solid #fff;outline-offset:2px}
-.sheet{position:fixed;inset:auto 0 0 0;max-height:78dvh;overflow:auto;background:var(--cream);border-radius:28px 28px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+.sheet{position:fixed;z-index:15;inset:auto 0 0 0;max-height:78dvh;overflow:auto;background:var(--cream);border-radius:28px 28px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));
  box-shadow:0 -6px 24px #0005;transform:translateY(110%);transition:transform .25s}
 .sheet.on{transform:none}
 .row{display:flex;gap:14px;align-items:flex-start}
@@ -46,7 +47,7 @@ ul{padding-left:20px;margin:8px 0;font-weight:600;line-height:1.6}
 .btns .alt{background:var(--yellow);color:var(--ink)}
 .spin{width:36px;height:36px;border:5px solid #0002;border-top-color:var(--blue);border-radius:50%;animation:r 1s linear infinite;flex:none}
 @keyframes r{to{transform:rotate(360deg)}}
-#book{position:fixed;inset:0;background:var(--sky);overflow:auto;padding:calc(14px + env(safe-area-inset-top)) 14px 90px;display:none}
+#book{position:fixed;inset:0;z-index:20;background:var(--sky);overflow:auto;padding:calc(14px + env(safe-area-inset-top)) 14px 90px;display:none}
 #book.on{display:block}
 #book header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:22px;color:#fff}
 #book header button{border:0;border-radius:14px;padding:10px 16px;font:inherit;background:var(--yellow);color:var(--ink);cursor:pointer}
@@ -178,9 +179,9 @@ function renderBook(){
   });
   $('count').textContent = `我的圖鑑 ${n} / ${CLASSES.length}`;
 }
-function openBook(){ closeSheet(); renderBook(); $('book').classList.add('on'); }
+function openBook(){ closeSheet(); renderBook(); $('book').classList.add('on'); $('zoom').hidden = true; }
 $('open').onclick = openBook;
-$('close').onclick = () => $('book').classList.remove('on');
+$('close').onclick = () => { $('book').classList.remove('on'); $('zoom').hidden = false; };
 
 /* ---------- 變焦：優先用鏡頭硬體變焦，不支援時改用數位變焦；支援雙指縮放 ---------- */
 let zoom = 1, zr = { hw:false, min:1, max:4 };
