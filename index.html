@@ -144,8 +144,23 @@ async function share(){
 
 /* ---------- 收集圖鑑：拍照後選火車類型，照片存進圖鑑 ---------- */
 const CLASSES = [{"id": "TZECHIANG", "name": "自強號", "group": "臺鐵火車"}, {"id": "CHUKUANG", "name": "莒光號", "group": "臺鐵火車"}, {"id": "DISTRICT", "name": "區間車", "group": "臺鐵火車"}, {"id": "METRO", "name": "捷運", "group": "其他交通"}, {"id": "HSR", "name": "高鐵", "group": "其他交通"}, {"id": "FERRY", "name": "渡輪", "group": "其他交通"}, {"id": "LRT", "name": "輕軌", "group": "其他交通"}, {"id": "PHOTO_DIRECTOR", "name": "與主任的合照", "group": "合照"}, {"id": "PHOTO_PRINCIPAL", "name": "與校長的合照", "group": "合照"}, {"id": "PHOTO_GROUP", "name": "小組自拍合照", "group": "合照"}, {"id": "CLASSMATES", "name": "我的同學", "group": "合照", "multi": true}, {"id": "QIJIN", "name": "我愛旗津", "group": "高雄行程"}, {"id": "KAOHSIUNG_PORT", "name": "我愛高雄港", "group": "高雄行程"}, {"id": "DANDAN", "name": "我的丹丹漢堡", "group": "高雄行程"}];
-const loadBook = () => { try { return JSON.parse(localStorage.getItem('tc_book')) || {}; } catch { return {}; } };
-const saveBook = b => { try { localStorage.setItem('tc_book', JSON.stringify(b)); return true; } catch { return false; } };
+// 圖鑑改存在 IndexedDB（容量遠大於 localStorage 的 5MB）；舊的 localStorage 紀錄會自動搬過來
+const openDB = () => new Promise((res, rej) => { const r = indexedDB.open('tc_db', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const kvGet = async k => { const db = await openDB(); return new Promise((res, rej) => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); };
+const kvSet = async (k, v) => { const db = await openDB(); return new Promise((res, rej) => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = () => res(true); t.onerror = t.onabort = () => rej(t.error); }); };
+const oldBook = () => { try { return JSON.parse(localStorage.getItem('tc_book')) || {}; } catch { return {}; } };
+async function loadBook(){
+  try{
+    let b = await kvGet('book');
+    if(!b){ b = oldBook(); if(Object.keys(b).length) await kvSet('book', b); }
+    return b || {};
+  }catch{ return oldBook(); }
+}
+async function saveBook(b){
+  try{ await kvSet('book', b); return true; }
+  catch{ try{ localStorage.setItem('tc_book', JSON.stringify(b)); return true; }catch{ return false; } }
+}
+let saving = false;
 const preview = () => { const img = h('img'); img.src = last.url; img.alt = '剛拍的照片'; img.style.cssText = 'display:block;margin:8px auto;max-height:26dvh;max-width:100%;border-radius:12px;border:3px solid #fff'; return img; };
 
 function showPick(){
@@ -159,8 +174,9 @@ function showPick(){
   sheet.classList.add('on'); sheet.scrollTop = 0;
 }
 
-function collect(c){
-  const book = loadBook(), date = new Date().toLocaleDateString('zh-TW'); let msg;
+async function collect(c){
+  if(saving) return; saving = true;
+  const book = await loadBook(), date = new Date().toLocaleDateString('zh-TW'); let msg;
   if(c.multi){                                   // 可累積：每拍一張就新增一張，不覆蓋
     const arr = Array.isArray(book[c.id]) ? book[c.id] : [];
     arr.push({ date, thumb: last.thumbS }); book[c.id] = arr;
@@ -170,14 +186,14 @@ function collect(c){
     book[c.id] = { date, thumb: last.thumb };
     msg = (again ? '已更新照片：' : '收集成功！') + c.name;
   }
-  const ok = saveBook(book);
+  const ok = await saveBook(book); saving = false;
   sheet.replaceChildren(h('h2', '', ok ? msg : '存不進圖鑑（儲存空間不足）'), preview(),
     buttons(['看圖鑑', openBook], ['儲存照片', saveFile, 'alt'], ['繼續拍', closeSheet, 'alt']));
   sheet.scrollTop = 0;
 }
 
-function renderBook(){
-  const book = loadBook(), grid = $('grid'); grid.replaceChildren();
+async function renderBook(){
+  const book = await loadBook(), grid = $('grid'); grid.replaceChildren();
   let g = '', n = 0;
   CLASSES.forEach(c => {
     if(c.group !== g){ g = c.group; grid.append(h('div', 'gh', g)); }
@@ -197,7 +213,7 @@ function renderBook(){
   });
   $('count').textContent = `我的圖鑑 ${n} / ${CLASSES.length}`;
 }
-function openBook(){ closeSheet(); renderBook(); $('book').classList.add('on'); $('zoom').hidden = true; }
+async function openBook(){ closeSheet(); await renderBook(); $('book').classList.add('on'); $('zoom').hidden = true; }
 $('open').onclick = openBook;
 $('close').onclick = () => { $('book').classList.remove('on'); $('zoom').hidden = false; };
 
@@ -242,6 +258,7 @@ $('stage').addEventListener('touchmove', e => { if(e.touches.length === 2 && pd)
 $('stage').addEventListener('touchend', e => { if(e.touches.length < 2) pd = 0; });
 
 /* ---------- 啟動 ---------- */
+navigator.storage?.persist?.();   // 請瀏覽器盡量不要自動清除圖鑑資料
 buildZoom(); setZoom(1);
 (async () => { await frameImg.decode(); startCam(); })();
 </script>
